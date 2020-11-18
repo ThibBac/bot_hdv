@@ -92,7 +92,7 @@ def get_name(img):
     return text
 
 
-def scan_hdv(pos_vendeur, nb_ressources, price_df):
+def scan_hdv(pos_vendeur, nb_ressources, price_1x_df, price_10x_df, price_100x_df):
     open_hdv(pos_vendeur)
 
     ressources_range = 4 if pos_vendeur == vendeur_ressources[:2] else 1
@@ -103,6 +103,45 @@ def scan_hdv(pos_vendeur, nb_ressources, price_df):
             obj_type = get_name(np.asarray(obj_type))[0]
             reset_cursor()
             screen = ImageGrab.grab(bbox=screen_crop)
+
+            if j == 0:
+                left_click(530, 224)
+                time.sleep(0.2)
+                left_click(530, 224 + ((i + 1) * 35))
+                time.sleep(0.2)
+            elif j == 1:
+                if i + 5 == nb_ressources + 1:
+                    break
+                left_click(530, 224)
+                time.sleep(0.2)
+                left_click(787, 577)
+                time.sleep(0.2)
+                left_click(530, 224 + ((i + 5) * 35))
+                time.sleep(0.2)
+            elif j == 2:
+                if i + 5 == nb_ressources + 1:
+                    break
+                left_click(530, 224)
+                time.sleep(0.2)
+                left_click(787, 577)
+                time.sleep(0.2)
+                left_click(787, 577)
+                time.sleep(0.2)
+                left_click(530, 224 + ((i + 5) * 35))
+                time.sleep(0.2)
+            elif j == 3:
+                if i + 10 == nb_ressources + 1:
+                    break
+                left_click(530, 224)
+                time.sleep(0.2)
+                left_click(787, 577)
+                time.sleep(0.2)
+                left_click(787, 577)
+                time.sleep(0.2)
+                left_click(787, 577)
+                time.sleep(0.2)
+                left_click(530, 224 + ((i + 10) * 35))
+                time.sleep(0.2)
 
             while screen.getpixel((825 - screen_crop[0], 660 - screen_crop[1])) != (
                     81, 74, 60) and not break_program:
@@ -115,7 +154,7 @@ def scan_hdv(pos_vendeur, nb_ressources, price_df):
                     if break_program:
                         break
                     left_click(380, 280 + k * 35)
-                    time.sleep(0.2)
+                    time.sleep(0.1)
                     price_img_crop_x1 = ImageGrab.grab(bbox=first_price_crop_x1)
                     price_x1 = get_price(np.asarray(price_img_crop_x1))
 
@@ -129,52 +168,27 @@ def scan_hdv(pos_vendeur, nb_ressources, price_df):
                     print(price_x1, price_x10, price_x100)
 
                 for name, price in zip(names, prices):
-                    price_df = price_df.append({'type': str(obj_type),
-                                                'name': unidecode(str(name)).lower(),
-                                                '1x': int(price[0]) if price[0].isnumeric() else None,
-                                                '10x': int(price[1]) if price[1].isnumeric() else None,
-                                                '100x': int(price[2]) if price[2].isnumeric() else None},
-                                               ignore_index=True)
-                left_click(825, 660)
-                time.sleep(0.3)
+                    name = unidecode(str(name)).lower()
+                    price = [int(p) if p.isnumeric() else None for p in price]
+
+                    if name not in price_1x_df:
+                        price_1x_df[name] = np.nan
+                        price_10x_df[name] = np.nan
+                        price_100x_df[name] = np.nan
+                        price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price[0]
+                        price_10x_df.iloc[-1, price_10x_df.columns.get_loc(name)] = price[1]
+                        price_100x_df.iloc[-1, price_100x_df.columns.get_loc(name)] = price[2]
+
+                    else:
+                        price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price[0]
+                        price_10x_df.iloc[-1, price_10x_df.columns.get_loc(name)] = price[1]
+                        price_100x_df.iloc[-1, price_100x_df.columns.get_loc(name)] = price[2]
 
                 if screen.getpixel((825 - screen_crop[0], 660 - screen_crop[1])) != (190, 185, 152):
                     break
-
-            left_click(530, 224)
-            time.sleep(0.2)
-            if j == 0:
-                if i == nb_ressources - 1:
-                    break
-                left_click(530, 224 + ((i + 2) * 35))
-                time.sleep(0.2)
-            elif j == 1:
-                left_click(787, 577)
-                time.sleep(0.2)
-                left_click(530, 224 + ((i + 5) * 35))
-                time.sleep(0.2)
-                if i + 5 > nb_ressources:
-                    break
-            elif j == 2:
-                left_click(787, 577)
-                time.sleep(0.2)
-                left_click(787, 577)
-                time.sleep(0.2)
-                left_click(530, 224 + ((i + 5) * 35))
-                time.sleep(0.2)
-                if i + 5 > nb_ressources:
-                    break
-            elif j == 3:
-                left_click(787, 577)
-                time.sleep(0.2)
-                left_click(787, 577)
-                time.sleep(0.2)
-                left_click(787, 577)
-                time.sleep(0.2)
-                left_click(530, 224 + ((i + 10) * 35))
-                time.sleep(0.2)
-                if i + 9 > nb_ressources:
-                    break
+                else:
+                    left_click(825, 660)
+                    time.sleep(0.3)
 
             if break_program:
                 break
@@ -182,7 +196,7 @@ def scan_hdv(pos_vendeur, nb_ressources, price_df):
         if break_program:
             break
 
-    return price_df
+    return price_1x_df, price_10x_df, price_100x_df
 
 
 def change_HDV(pos_transpo, pos_in_list):
@@ -191,9 +205,10 @@ def change_HDV(pos_transpo, pos_in_list):
     keyboard.release(Key.esc)
     time.sleep(1)
     left_click(pos_transpo[0], pos_transpo[1])
-    time.sleep(1)
-    left_click(pos_transpo[0] + 50,  pos_transpo[1] + 60)
     time.sleep(0.3)
+    left_click(pos_transpo[0] + 50,  pos_transpo[1] + 60)
+    time.sleep(3)
     left_click(pos_HDV_onglet[0], pos_HDV_onglet[1])
     time.sleep(0.3)
     left_click(pos_HDV_onglet[0], 258 + pos_in_list * 45)
+    time.sleep(2)
