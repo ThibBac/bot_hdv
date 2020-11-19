@@ -6,7 +6,7 @@ import os
 import re
 from pynput import keyboard
 from pynput.keyboard import Key, Controller
-from directKeys import left_click
+from directKeys import left_click, moveMouseTo
 import time
 from params import *
 from PIL import ImageGrab
@@ -143,6 +143,7 @@ def scan_hdv(pos_vendeur, nb_ressources, price_1x_df, price_10x_df, price_100x_d
                 left_click(530, 224 + ((i + 10) * 35))
                 time.sleep(0.2)
 
+            moveMouseTo(0, 0)
             while screen.getpixel((825 - screen_crop[0], 660 - screen_crop[1])) != (
                     81, 74, 60) and not break_program:
                 screen = ImageGrab.grab(bbox=screen_crop)
