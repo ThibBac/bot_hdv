@@ -15,6 +15,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from unidecode import unidecode
 from datetime import datetime
+
 break_program = False
 
 
@@ -31,6 +32,17 @@ def on_press(key):
 def reset_cursor():
     for _ in range(20):
         left_click(reset_cursor_pos[0], reset_cursor_pos[1], sleep_time=0.1)
+
+
+def check_if_file_exist(file, timestampStr):
+    if os.path.isfile(file):
+        price_df = pd.read_excel(file)
+        price_df = price_df.append({'index': timestampStr}, ignore_index=True)
+    else:
+        price_df = pd.DataFrame()
+        price_df = price_df.append({'index': timestampStr}, ignore_index=True)
+
+    return price_df
 
 
 def open_hdv(pos_vendeur):
@@ -156,6 +168,7 @@ def scan_hdv(pos_vendeur, nb_ressources, price_1x_df, price_10x_df, price_100x_d
                         break
                     left_click(380, 280 + k * 35)
                     time.sleep(0.1)
+
                     price_img_crop_x1 = ImageGrab.grab(bbox=first_price_crop_x1)
                     price_x1 = get_price(np.asarray(price_img_crop_x1))
 
@@ -207,9 +220,17 @@ def change_HDV(pos_transpo, pos_in_list):
     time.sleep(1)
     left_click(pos_transpo[0], pos_transpo[1])
     time.sleep(0.3)
-    left_click(pos_transpo[0] + 50,  pos_transpo[1] + 60)
+    left_click(pos_transpo[0] + 50, pos_transpo[1] + 60)
     time.sleep(3)
     left_click(pos_HDV_onglet[0], pos_HDV_onglet[1])
     time.sleep(0.3)
-    left_click(pos_HDV_onglet[0], 258 + pos_in_list * 45)
-    time.sleep(2)
+
+    if pos_in_list < 10:
+        left_click(pos_HDV_onglet[0], 258 + pos_in_list * 45)
+        time.sleep(2)
+    else:
+        left_click(1287, 653)
+        left_click(1287, 653)
+        time.sleep(0.3)
+        left_click(pos_HDV_onglet[0], 258 + (pos_in_list - 9) * 45)
+        time.sleep(2)

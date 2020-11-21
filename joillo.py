@@ -24,7 +24,9 @@ with keyboard.Listener(on_press=on_press) as listener:
             left_click(913, 777)
             time.sleep(0.1)
 
+
             left_click(913, 777)
+
             time.sleep(0.2)
 
         keyboard.press(Key.enter)
