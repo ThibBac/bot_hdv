@@ -50,11 +50,21 @@ def create_all_csv(timestampStr):
 
 
 def check_if_file_exist(file, timestampStr):
+    if "ressources" in file:
+        with open('ressources_json.json') as json_file:
+            ressources_json = json.load(json_file)
+            columns = [i for i in ressources_json]
+
+    else:
+        with open('items_json.json') as json_file:
+            items_json = json.load(json_file)
+            columns = [i for i in items_json]
+
     if os.path.isfile(file):
         price_df = pd.read_csv(file, index_col=0)
         price_df = price_df.append({'date': timestampStr}, ignore_index=True)
     else:
-        price_df = pd.DataFrame()
+        price_df = pd.DataFrame(columns=['date'] + columns)
         price_df = price_df.append({'date': timestampStr}, ignore_index=True)
 
     return price_df
