@@ -15,6 +15,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from unidecode import unidecode
 from datetime import datetime
+import json
 
 break_program = False
 
@@ -34,13 +35,27 @@ def reset_cursor():
         left_click(reset_cursor_pos[0], reset_cursor_pos[1], sleep_time=0.1)
 
 
+def create_all_csv(timestampStr):
+    with open('ressources_json.json') as json_file:
+        ressources_json = json.load(json_file)
+
+    columns = [i for i in ressources_json]
+
+    for hdv in hdv_dict:
+        for nb in hdv_dict[hdv]['csv_qte']:
+            df = pd.DataFrame(columns=['date'] + columns)
+            df = df.append({'date': timestampStr}, ignore_index=True)
+            name = str(hdv) + '_' + nb + '.csv'
+            df.to_csv('./CSV/' + name)
+
+
 def check_if_file_exist(file, timestampStr):
     if os.path.isfile(file):
-        price_df = pd.read_excel(file)
-        price_df = price_df.append({'index': timestampStr}, ignore_index=True)
+        price_df = pd.read_csv(file, index_col=0)
+        price_df = price_df.append({'date': timestampStr}, ignore_index=True)
     else:
         price_df = pd.DataFrame()
-        price_df = price_df.append({'index': timestampStr}, ignore_index=True)
+        price_df = price_df.append({'date': timestampStr}, ignore_index=True)
 
     return price_df
 
@@ -99,15 +114,17 @@ def get_name(img):
     # cv2.waitKey(0)
     #
     text = text.split('\n')
-    text = [i for i in text if i is not '' and i is not ' ']
+    text = [i for i in text if i != '' and i != ' ']
 
     return text
 
 
-def scan_hdv(pos_vendeur, nb_ressources, price_1x_df, price_10x_df, price_100x_df):
+def scan_hdv(hdv, key, price_1x_df, price_10x_df=None, price_100x_df=None):
+    pos_vendeur = hdv['pos_vendeur']
+    nb_ressources = hdv['nb_ressources']
     open_hdv(pos_vendeur)
 
-    ressources_range = 4 if pos_vendeur == vendeur_ressources[:2] else 1
+    ressources_range = 4 if key == 'ressources' else 1
 
     for j in range(ressources_range):
         for i in range(nb_ressources):
@@ -167,36 +184,51 @@ def scan_hdv(pos_vendeur, nb_ressources, price_1x_df, price_10x_df, price_100x_d
                     if break_program:
                         break
                     left_click(380, 280 + k * 35)
-                    time.sleep(0.1)
+                    time.sleep(0.2)
 
                     price_img_crop_x1 = ImageGrab.grab(bbox=first_price_crop_x1)
                     price_x1 = get_price(np.asarray(price_img_crop_x1))
 
-                    price_img_crop_x10 = ImageGrab.grab(bbox=first_price_crop_x10)
-                    price_x10 = get_price(np.asarray(price_img_crop_x10))
+                    if price_10x_df is not None:
+                        price_img_crop_x10 = ImageGrab.grab(bbox=first_price_crop_x10)
+                        price_x10 = get_price(np.asarray(price_img_crop_x10))
 
-                    price_img_crop_x100 = ImageGrab.grab(bbox=first_price_crop_x100)
-                    price_x100 = get_price(np.asarray(price_img_crop_x100))
+                        price_img_crop_x100 = ImageGrab.grab(bbox=first_price_crop_x100)
+                        price_x100 = get_price(np.asarray(price_img_crop_x100))
 
-                    prices.append((price_x1, price_x10, price_x100))
-                    print(price_x1, price_x10, price_x100)
+                        prices.append((price_x1, price_x10, price_x100))
+
+                    else:
+                        prices.append(price_x1)
+
+                    print(prices)
 
                 for name, price in zip(names, prices):
                     name = unidecode(str(name)).lower()
-                    price = [int(p) if p.isnumeric() else None for p in price]
+                    if price_10x_df is not None:
+                        price = [int(p) if p.isnumeric() else None for p in price]
+                    else:
+                        price = int(price) if price.isnumeric() else None
 
                     if name not in price_1x_df:
-                        price_1x_df[name] = np.nan
-                        price_10x_df[name] = np.nan
-                        price_100x_df[name] = np.nan
-                        price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price[0]
-                        price_10x_df.iloc[-1, price_10x_df.columns.get_loc(name)] = price[1]
-                        price_100x_df.iloc[-1, price_100x_df.columns.get_loc(name)] = price[2]
+                        if price_10x_df is not None:
+                            price_1x_df[name] = np.nan
+                            price_10x_df[name] = np.nan
+                            price_100x_df[name] = np.nan
+                            price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price[0]
+                            price_10x_df.iloc[-1, price_10x_df.columns.get_loc(name)] = price[1]
+                            price_100x_df.iloc[-1, price_100x_df.columns.get_loc(name)] = price[2]
+                        else:
+                            price_1x_df[name] = np.nan
+                            price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price
 
                     else:
-                        price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price[0]
-                        price_10x_df.iloc[-1, price_10x_df.columns.get_loc(name)] = price[1]
-                        price_100x_df.iloc[-1, price_100x_df.columns.get_loc(name)] = price[2]
+                        if price_10x_df is not None:
+                            price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price[0]
+                            price_10x_df.iloc[-1, price_10x_df.columns.get_loc(name)] = price[1]
+                            price_100x_df.iloc[-1, price_100x_df.columns.get_loc(name)] = price[2]
+                        else:
+                            price_1x_df.iloc[-1, price_1x_df.columns.get_loc(name)] = price
 
                 if screen.getpixel((825 - screen_crop[0], 660 - screen_crop[1])) != (190, 185, 152):
                     break
